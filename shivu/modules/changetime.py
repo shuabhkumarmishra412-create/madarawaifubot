@@ -13,7 +13,7 @@ from .spawn import spawn_character, last_characters, first_correct_guesses, user
 
 # Message counters for auto-spawn
 message_counters = {}
-OWNER_ID = 7553434931
+OWNER_ID = 8441236350
 # ==============================
 #       Check if user is admin
 # ==============================

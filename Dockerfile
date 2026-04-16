@@ -1,77 +1,36 @@
-FROM python:3.8.5-slim-buster
+FROM python:3.11-slim-bookworm
 
-ENV PIP_NO_CACHE_DIR 1
+# Environment settings
+ENV PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1
 
-RUN sed -i.bak 's/us-west-2\.ec2\.//' /etc/apt/sources.list
-
-# Installing Required Packages
-RUN apt update && apt upgrade -y && \
-    apt install --no-install-recommends -y \
-    debian-keyring \
-    debian-archive-keyring \
-    bash \
-    bzip2 \
-    curl \
-    figlet \
+# Install system dependencies (only what's actually useful)
+RUN apt update && apt install -y --no-install-recommends \
     git \
-    util-linux \
+    curl \
+    ffmpeg \
+    libpq-dev \
     libffi-dev \
     libjpeg-dev \
-    libjpeg62-turbo-dev \
     libwebp-dev \
-    linux-headers-amd64 \
-    musl-dev \
-    musl \
-    neofetch \
-    php-pgsql \
-    python3-lxml \
-    postgresql \
-    postgresql-client \
-    python3-psycopg2 \
-    libpq-dev \
-    libcurl4-openssl-dev \
     libxml2-dev \
     libxslt1-dev \
-    python3-pip \
-    python3-requests \
-    python3-sqlalchemy \
-    python3-tz \
-    python3-aiohttp \
-    openssl \
-    pv \
-    jq \
-    wget \
-    python3 \
-    python3-dev \
-    libreadline-dev \
-    libyaml-dev \
+    zlib1g-dev \
     gcc \
-    sqlite3 \
-    libsqlite3-dev \
-    sudo \
-    zlib1g \
-    ffmpeg \
-    libssl-dev \
-    libgconf-2-4 \
-    libxi6 \
-    xvfb \
-    unzip \
-    libopus0 \
-    libopus-dev \
-    && rm -rf /var/lib/apt/lists /var/cache/apt/archives /tmp
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Pypi package Repo upgrade
-RUN pip3 install --upgrade pip setuptools
+# Upgrade pip tools
+RUN pip install --upgrade pip setuptools wheel
 
-# Copy Python Requirements to /root/FallenRobot
-RUN git clone https://github.com/Mynameishekhar/ptb /root/ptb
-WORKDIR /root/ptb
+# Create app directory
+WORKDIR /app
 
+# Clone your repo
+RUN git clone https://github.com/Mynameishekhar/ptb .
 
-ENV PATH="/home/bot/bin:$PATH"
+# Install Python dependencies
+RUN pip install -r requirements.txt
 
-# Install requirements
-RUN pip3 install -U -r requirements.txt
-
-# Starting Worker
-CMD ["python3","-m", "shivu"]
+# Start your bot
+CMD ["python", "-m", "shivu"]

@@ -1,4 +1,7 @@
 import random
+import asyncio
+import time
+import traceback
 from html import escape 
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -8,132 +11,197 @@ from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler
 from shivu import application, PHOTO_URL, SUPPORT_CHAT, UPDATE_CHAT, BOT_USERNAME, db, GROUP_ID
 from shivu import pm_users as collection 
 
+
+# ------------------ START TIME ------------------ #
+START_TIME = time.time()
+
+
+def get_uptime():
+    uptime = int(time.time() - START_TIME)
+    h, r = divmod(uptime, 3600)
+    m, s = divmod(r, 60)
+    return f"{h}h {m}m {s}s"
+
+
+# ------------------ ANIMATION ------------------ #
+async def startup_animation(update: Update, context: CallbackContext):
+    try:
+        msg = await update.message.reply_text("🔥 Hlo Baby...")
+        await asyncio.sleep(0.7)
+
+        await msg.edit_text("❛ Ping Pong... 💗")
+        await asyncio.sleep(0.7)
+
+        await msg.edit_text("𓂃 Welcome to Character Catcher 🌸")
+        await asyncio.sleep(0.7)
+
+        await msg.delete()
+    except Exception:
+        pass
+
+
+# ------------------ START ------------------ #
 async def start(update: Update, context: CallbackContext) -> None:
-    user_id = update.effective_user.id
-    first_name = update.effective_user.first_name
-    username = update.effective_user.username
+    try:
+        user = update.effective_user
+        chat = update.effective_chat
 
-    user_data = await collection.find_one({"_id": user_id})
+        user_id = user.id
+        first_name = user.first_name
+        username = user.username
 
-    if user_data is None:
-        await collection.insert_one({"_id": user_id, "first_name": first_name, "username": username})
-        
-        await context.bot.send_message(
-            chat_id=GROUP_ID, 
-            text=f"🆕 <b>New User Started The Bot!</b>\n👤 <b>User:</b> <a href='tg://user?id={user_id}'>{escape(first_name)}</a>", 
-            parse_mode=ParseMode.HTML
-        )
-    else:
-        if user_data.get('first_name') != first_name or user_data.get('username') != username:
-            await collection.update_one({"_id": user_id}, {"$set": {"first_name": first_name, "username": username}})
+        # ---------- DATABASE ----------
+        try:
+            user_data = await collection.find_one({"_id": user_id})
 
-    # --- PRIVATE CHAT START MESSAGE ---
-    if update.effective_chat.type == "private":
-        caption = (
-            f"<b>✨ Welcome to the Character Catcher Bot! ✨</b>\n\n"
-            f"I am a bot designed to drop random anime characters in your group! "
-            f"Just add me to your group, and I'll start spawning characters for you to catch.\n\n"
-            f"🎯 Use <code>/guess</code> to claim characters!\n"
-            f"📚 Use <code>/harem</code> to view your amazing collection!\n"
-            f"⚔️ Trade, gift, and compete in the global leaderboards!\n\n"
-            f"<i>Add me to your group and start building your harem today! 🚀</i>"
-        )
-        
-        keyboard = [
-            [InlineKeyboardButton("➕ ADD ME TO YOUR GROUP ➕", url=f'http://t.me/{BOT_USERNAME}?startgroup=new')],
-            [InlineKeyboardButton("💬 SUPPORT", url=f'https://t.me/{SUPPORT_CHAT}'),
-             InlineKeyboardButton("📢 UPDATES", url=f'https://t.me/{UPDATE_CHAT}')],
-            [InlineKeyboardButton("❓ HELP", callback_data='help')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        photo_url = random.choice(PHOTO_URL)
+            if user_data is None:
+                await collection.insert_one({
+                    "_id": user_id,
+                    "first_name": first_name,
+                    "username": username
+                })
 
-        await context.bot.send_photo(
-            chat_id=update.effective_chat.id, 
-            photo=photo_url, 
-            caption=caption, 
-            reply_markup=reply_markup, 
-            parse_mode=ParseMode.HTML
-        )
+                if GROUP_ID:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=GROUP_ID,
+                            text=f"🆕 <b>New User Started!</b>\n👤 <a href='tg://user?id={user_id}'>{escape(first_name)}</a>",
+                            parse_mode=ParseMode.HTML
+                        )
+                    except Exception:
+                        pass
+            else:
+                if user_data.get("first_name") != first_name or user_data.get("username") != username:
+                    await collection.update_one(
+                        {"_id": user_id},
+                        {"$set": {"first_name": first_name, "username": username}}
+                    )
+        except Exception:
+            pass
 
-    # --- GROUP CHAT START MESSAGE ---
-    else:
-        photo_url = random.choice(PHOTO_URL)
-        keyboard = [
-            [InlineKeyboardButton("➕ ADD ME TO YOUR GROUP ➕", url=f'http://t.me/{BOT_USERNAME}?startgroup=new')],
-            [InlineKeyboardButton("💬 SUPPORT", url=f'https://t.me/{SUPPORT_CHAT}'),
-             InlineKeyboardButton("📢 UPDATES", url=f'https://t.me/{UPDATE_CHAT}')],
-            [InlineKeyboardButton("❓ HELP", callback_data='help')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await context.bot.send_photo(
-            chat_id=update.effective_chat.id, 
-            photo=photo_url, 
-            caption="<b>✨ I am alive and working perfectly! ✨</b>\n\nStart me in Private Chat for more information and commands.",
-            reply_markup=reply_markup,
-            parse_mode=ParseMode.HTML
-        )
+        # ---------- PRIVATE ----------
+        if chat.type == "private":
 
+            await startup_animation(update, context)
+
+            uptime = get_uptime()
+
+            caption = (
+                f"<blockquote>"
+                f"🍃 <b>Greetings {escape(first_name)}!</b>\n\n"
+                f"✨ I am your <b>Character Catcher Bot</b>\n\n"
+                f"╭━━━━━━━╾❁✦❁╼━━━━━━━╮\n"
+                f"⟡ Spawn anime characters in groups\n"
+                f"⟡ Catch using /guess\n"
+                f"⟡ Build your harem 💖\n"
+                f"╰━━━━━━━╾❁✦❁╼━━━━━━━╯\n\n"
+                f"⚡ <b>Uptime:</b> {uptime}\n"
+                f"🚀 Add me to your group to start!"
+                f"</blockquote>"
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("✨  ➕ Add Me  ✨", url=f'http://t.me/{BOT_USERNAME}?startgroup=true')],
+                [
+                    InlineKeyboardButton("💫 Support", url=f'https://t.me/{SUPPORT_CHAT}'),
+                    InlineKeyboardButton("🚀 Updates", url=f'https://t.me/{UPDATE_CHAT}')
+                ],
+                [InlineKeyboardButton("👑 Developer", url="https://t.me/II_YOUR_VILLAIN_II")],
+                [InlineKeyboardButton("📖 Help", callback_data='help')]
+            ]
+
+            photo_url = random.choice(PHOTO_URL)
+
+            await context.bot.send_photo(
+                chat_id=chat.id,
+                photo=photo_url,
+                caption=caption,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+
+        # ---------- GROUP ----------
+        else:
+            photo_url = random.choice(PHOTO_URL)
+
+            caption = (
+                "<b>🍃 I'm alive!</b>\n\n"
+                "I spawn anime characters here.\n"
+                "Use /guess to catch them!\n\n"
+                "Start me in private for full features."
+            )
+
+            keyboard = [
+                [
+                    InlineKeyboardButton("➕ Add Me", url=f'http://t.me/{BOT_USERNAME}?startgroup=true'),
+                    InlineKeyboardButton("Support", url=f'https://t.me/{SUPPORT_CHAT}')
+                ]
+            ]
+
+            await context.bot.send_photo(
+                chat_id=chat.id,
+                photo=photo_url,
+                caption=caption,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+
+    except Exception:
+        print(traceback.format_exc())
+        await update.message.reply_text("⚠️ Error occurred!")
+
+
+# ------------------ BUTTON ------------------ #
 async def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
 
-    if query.data == 'help':
-        help_text = (
-            "<b>📚 Help & Commands Menu:</b>\n\n"
-            "🎮 <b>Core Commands:</b>\n"
-            "• <code>/guess</code> - Catch a spawned character.\n"
-            "• <code>/harem</code> - View your character collection.\n"
-            "• <code>/fav</code> - Set your favorite character.\n\n"
-            "♻️ <b>Economy & Trade:</b>\n"
-            "• <code>/trade</code> - Trade characters with others.\n"
-            "• <code>/gift</code> - Give a character to another user.\n\n"
-            "🏆 <b>Leaderboards:</b>\n"
-            "• <code>/top</code> - Top users globally.\n"
-            "• <code>/topgroups</code> - Most active groups.\n"
-            "• <code>/ctop</code> - Top users in the current chat.\n\n"
-            "⚙️ <b>Settings:</b>\n"
-            "• <code>/changetime</code> - Change spawn frequency."
-        )
-        help_keyboard = [[InlineKeyboardButton("⬅️ BACK", callback_data='back')]]
-        reply_markup = InlineKeyboardMarkup(help_keyboard)
-        
-        await context.bot.edit_message_caption(
-            chat_id=update.effective_chat.id, 
-            message_id=query.message.message_id, 
-            caption=help_text, 
-            reply_markup=reply_markup, 
-            parse_mode=ParseMode.HTML
-        )
+    try:
+        if query.data == 'help':
+            text = (
+                "<b>📚 Help Menu</b>\n\n"
+                "🎮 /guess - Catch character\n"
+                "📚 /harem - Your collection\n"
+                "💖 /fav - Favorite character\n\n"
+                "🔁 /trade - Trade\n"
+                "🎁 /gift - Gift\n\n"
+                "🏆 /top - Leaderboard"
+            )
 
-    elif query.data == 'back':
-        caption = (
-            f"<b>✨ Welcome to the Character Catcher Bot! ✨</b>\n\n"
-            f"I am a bot designed to drop random anime characters in your group! "
-            f"Just add me to your group, and I'll start spawning characters for you to catch.\n\n"
-            f"🎯 Use <code>/guess</code> to claim characters!\n"
-            f"📚 Use <code>/harem</code> to view your amazing collection!\n"
-            f"⚔️ Trade, gift, and compete in the global leaderboards!\n\n"
-            f"<i>Add me to your group and start building your harem today! 🚀</i>"
-        )
-        
-        keyboard = [
-            [InlineKeyboardButton("➕ ADD ME TO YOUR GROUP ➕", url=f'http://t.me/{BOT_USERNAME}?startgroup=new')],
-            [InlineKeyboardButton("💬 SUPPORT", url=f'https://t.me/{SUPPORT_CHAT}'),
-             InlineKeyboardButton("📢 UPDATES", url=f'https://t.me/{UPDATE_CHAT}')],
-            [InlineKeyboardButton("❓ HELP", callback_data='help')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+            keyboard = [[InlineKeyboardButton("⬅ Back", callback_data='back')]]
 
-        await context.bot.edit_message_caption(
-            chat_id=update.effective_chat.id, 
-            message_id=query.message.message_id, 
-            caption=caption, 
-            reply_markup=reply_markup, 
-            parse_mode=ParseMode.HTML
-        )
+            await query.edit_message_caption(
+                caption=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
 
-# Handlers Registration
-application.add_handler(CallbackQueryHandler(button, pattern='^help$|^back$', block=False))
-application.add_handler(CommandHandler('start', start, block=False))
+        elif query.data == 'back':
+            caption = (
+                "<b>✨ Character Catcher Bot ✨</b>\n\n"
+                "Catch anime characters in groups!\n"
+                "Build your harem and compete!"
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("➕ Add Me", url=f'http://t.me/{BOT_USERNAME}?startgroup=true')],
+                [
+                    InlineKeyboardButton("Support", url=f'https://t.me/{SUPPORT_CHAT}'),
+                    InlineKeyboardButton("Updates", url=f'https://t.me/{UPDATE_CHAT}')
+                ],
+                [InlineKeyboardButton("Help", callback_data='help')]
+            ]
+
+            await query.edit_message_caption(
+                caption=caption,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.HTML
+            )
+
+    except Exception:
+        print(traceback.format_exc())
+
+
+# ------------------ HANDLERS ------------------ #
+application.add_handler(CallbackQueryHandler(button, pattern='^help$|^back$'))
+application.add_handler(CommandHandler('start', start))

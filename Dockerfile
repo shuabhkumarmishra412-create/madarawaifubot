@@ -1,13 +1,10 @@
 FROM python:3.11-slim-bookworm
 
-# Environment settings
 ENV PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1
 
-# Install system dependencies (only what's actually useful)
+# Install required system packages
 RUN apt update && apt install -y --no-install-recommends \
-    git \
-    curl \
     ffmpeg \
     libpq-dev \
     libffi-dev \
@@ -20,17 +17,17 @@ RUN apt update && apt install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip tools
-RUN pip install --upgrade pip setuptools wheel
-
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Clone your repo
-RUN git clone https://github.com/Mynameishekhar/ptb .
+# Copy your repo files
+COPY . .
 
-# Install Python dependencies
+# Upgrade pip
+RUN pip install --upgrade pip setuptools wheel
+
+# Install dependencies
 RUN pip install -r requirements.txt
 
-# Start your bot
+# Run bot
 CMD ["python", "-m", "shivu"]
